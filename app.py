@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 상단바 짤림 방지 및 모바일 직관적 가로 스크롤 패들렛 스타일 CSS
+# 상단바 여백 넉넉하게 늘림 및 모바일 직관적 가로 스크롤 패들렛 스타일 CSS
 st.markdown(
     """
     <style>
@@ -23,12 +23,12 @@ st.markdown(
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* 상단바 짤림 방지를 위한 적당한 여백 확보 */
+    /* 상단바 여백을 넉넉하게 늘림 */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 1.2rem !important;
-        padding-right: 1.2rem !important;
+        padding-top: 2.8rem !important;
+        padding-bottom: 2.5rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
     }
 
     /* 아주 은은하고 투명한 파스텔 배경 */
@@ -54,7 +54,7 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 핵심: 모바일 및 PC에서 1~4모둠을 나란히 두고 가로 스크롤 */
+    /* 모바일 및 PC에서 1~4모둠을 나란히 두고 가로 스크롤 */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -95,12 +95,12 @@ st.markdown(
     .scroll-guide {
         background: rgba(99, 102, 241, 0.1);
         color: #4f46e5;
-        padding: 6px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         font-weight: 700;
         text-align: center;
-        margin-bottom: 12px;
+        margin-bottom: 15px;
         display: inline-block;
         border: 1px solid rgba(99, 102, 241, 0.2);
     }
@@ -192,18 +192,13 @@ if st.session_state.fullscreen_img:
   st.stop()
 
 
-# --- 상단 타이틀 (여백 안정화) ---
+# --- 상단 타이틀 (여백 넉넉하게, 서브멘트 삭제) ---
 col_head, col_auth = st.columns([12, 1])
 
 with col_head:
   st.markdown(
-      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.6rem;"
-      " margin-bottom: 2px;'>🌍 세계 축제 이미지 분석</h1>",
-      unsafe_allow_html=True,
-  )
-  st.markdown(
-      "<p style='color: #64748b; font-size: 0.85rem; font-weight: 700;"
-      " margin-bottom: 0px;'>모둠별 학습지 공유 보드</p>",
+      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.8rem;"
+      " margin-top: 10px; margin-bottom: 5px;'>🌍 세계 축제 이미지 분석</h1>",
       unsafe_allow_html=True,
   )
 
@@ -232,9 +227,9 @@ with col_auth:
 if st.session_state.is_teacher:
   st.info("🔓 [교사 모드 활성화됨] 개별 사진 삭제가 가능합니다.")
 
-# 직관적인 가로 스크롤 안내 뱃지 추가
+# 직관적인 가로 스크롤 안내 뱃지
 st.markdown(
-    '<div style="text-align: center; margin: 10px 0 15px 0;"><span'
+    '<div style="text-align: center; margin: 15px 0 20px 0;"><span'
     ' class="scroll-guide">👉 손가락으로 옆으로 밀어서 2~4모둠을 확인하세요!</span></div>',
     unsafe_allow_html=True,
 )
@@ -249,8 +244,8 @@ cols = st.columns(4)
 for idx, group_name in enumerate(groups):
   with cols[idx]:
     st.markdown(
-        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.15rem;"
-        f" margin-top: 0; margin-bottom: 0.5rem; text-align: center;'>📌"
+        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.2rem;"
+        f" margin-top: 0; margin-bottom: 0.8rem; text-align: center;'>📌"
         f" {group_name}</h3>",
         unsafe_allow_html=True,
     )
