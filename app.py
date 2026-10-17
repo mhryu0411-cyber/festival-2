@@ -14,7 +14,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 완벽한 패들렛 스타일 하얀 직사각형 카드 CSS 및 스크롤바 숨김
+# 완벽한 패들렛 스타일 가로 스크롤 및 하얀 직사각형 카드 CSS
 st.markdown(
     """
     <style>
@@ -55,27 +55,28 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 1~4모둠 가로 스크롤 패들렛 래퍼 */
-    .padlet-board-wrapper {
-        display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        padding-bottom: 20px;
-        width: 100%;
+    /* 핵심: 1~4모둠 컬럼을 가로 스크롤 패들렛 보드로 정렬 (스크롤바 숨김) */
+    [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        gap: 20px !important;
+        padding-bottom: 20px !important;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
 
-    .padlet-board-wrapper::-webkit-scrollbar {
+    [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
         display: none;
     }
 
-    /* 완벽하게 분리된 개별 하얀 직사각형 카드 (패들렛 박스) */
-    .padlet-card-box {
-        flex: 0 0 85vw;
-        max-width: 330px;
-        min-width: 290px;
+    /* 각 모둠 영역을 선명하고 뚜렷한 하얀색 직사각형 카드로 독립 분리 */
+    [data-testid="column"] {
+        flex: 0 0 85vw !important;
+        max-width: 340px !important;
+        min-width: 300px !important;
         background-color: #ffffff !important;
         border-radius: 20px !important;
         padding: 20px !important;
@@ -84,14 +85,6 @@ st.markdown(
         scroll-snap-align: center;
         display: flex;
         flex-direction: column;
-        max-height: 75vh;
-    }
-
-    .padlet-scroll-area {
-        overflow-y: auto;
-        flex-grow: 1;
-        padding-right: 4px;
-        margin-top: 10px;
     }
 
     /* 모바일 가로 스크롤 유도 안내 뱃지 스타일 */
@@ -245,39 +238,36 @@ with col_auth:
 if st.session_state.is_teacher:
   st.info("🔓 [교사 모드 활성화됨] 개별 사진 삭제가 가능합니다.")
 
-# 직관적인 가로 스크롤 안내 뱃지
+# 직관적인 가로 스크롤 안내 뱃지 (가운데 정렬)
 st.markdown(
     '<div style="text-align: center; margin: 15px 0 20px 0;"><span'
     ' class="scroll-guide">👉 손가락으로 옆으로 밀어서 2~4모둠을 확인하세요!</span></div>',
     unsafe_allow_html=True,
 )
 
-# --- 패들렛 스타일 1~4모둠 가로 스크롤 보드 (완벽한 하얀색 직사각형 박스 구현) ---
+# --- 패들렛 스타일 1~4모둠 가로 스크롤 보드 ---
 st.session_state.data = load_data()
 df = st.session_state.data
 
 groups = ["1모둠", "2모둠", "3모둠", "4모둠"]
-
-# HTML 가로 스크롤 래퍼 시작
-st.markdown('<div class="padlet-board-wrapper">', unsafe_allow_html=True)
-
 cols = st.columns(4)
 
 for idx, group_name in enumerate(groups):
   with cols[idx]:
-    # 개별 하얀 직사각형 카드 박스 시작
+    # 모둠 이름 가운데 정렬
     st.markdown(
-        f'<div class="padlet-card-box"><h3 style="font-weight: 800; color:'
-        f' #1e293b; font-size: 1.2rem; margin-top: 0; margin-bottom: 0.8rem;'
-        f' text-align: center;">📌 {group_name}</h3>',
+        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.2rem;"
+        f" margin-top: 0; margin-bottom: 0.8rem; text-align: center;'>📌"
+        f" {group_name}</h3>",
         unsafe_allow_html=True,
     )
 
-    # 모둠별 사진 업로드 팝오버
+    # 모둠별 사진 업로드 팝오버 (버튼 가운데 정렬 느낌을 위해 카드 너비에 맞춤)
     with st.popover(f"➕ 사진 올리기", use_container_width=True):
       st.markdown(
           f"<p style='font-weight: 800; font-size: 13px; color: #1e293b;"
-          f" margin-bottom: 8px;'>📸 {group_name} 사진 첨부</p>",
+          f" margin-bottom: 8px; text-align: center;'>📸 {group_name} 사진"
+          " 첨부</p>",
           unsafe_allow_html=True,
       )
 
@@ -325,9 +315,9 @@ for idx, group_name in enumerate(groups):
             st.session_state[f"rotation_{group_name}"] = 0
             st.rerun()
 
-    # 스크롤 가능한 카드 내부 영역 시작
-    st.markdown('<div class="padlet-scroll-area">', unsafe_allow_html=True)
+    st.write("")
 
+    # 해당 모둠 게시물 카드 목록 (최신순)
     group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
 
     if group_df.empty:
@@ -366,9 +356,3 @@ for idx, group_name in enumerate(groups):
               st.session_state.data.to_csv(CSV_FILE, index=False)
               st.success("삭제됨")
               st.rerun()
-
-    # 카드 박스 및 스크롤 영역 닫기
-    st.markdown("</div></div>", unsafe_allow_html=True)
-
-# 가로 스크롤 래퍼 닫기
-st.markdown("</div>", unsafe_allow_html=True)
