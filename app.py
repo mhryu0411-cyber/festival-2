@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 컬럼 가로 스크롤 강제 적용 및 모바일 패들렛 스타일 CSS
+# 상단바 짤림 방지 및 모바일 직관적 가로 스크롤 패들렛 스타일 CSS
 st.markdown(
     """
     <style>
@@ -23,12 +23,12 @@ st.markdown(
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* 상단 기본 여백 줄이기 */
+    /* 상단바 짤림 방지를 위한 적당한 여백 확보 */
     .block-container {
-        padding-top: 1.2rem !important;
+        padding-top: 2rem !important;
         padding-bottom: 2rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
     }
 
     /* 아주 은은하고 투명한 파스텔 배경 */
@@ -54,41 +54,55 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 핵심: Streamlit 컬럼들을 모바일에서도 옆으로 나란히 배치하고 가로 스크롤 생성 */
+    /* 핵심: 모바일 및 PC에서 1~4모둠을 나란히 두고 가로 스크롤 */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
         gap: 16px !important;
-        padding-bottom: 12px !important;
+        padding-bottom: 16px !important;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
     }
 
     [data-testid="column"] {
-        flex: 0 0 82vw !important;
-        max-width: 320px !important;
-        min-width: 280px !important;
+        flex: 0 0 85vw !important;
+        max-width: 340px !important;
+        min-width: 290px !important;
         background-color: rgba(255, 255, 255, 0.95) !important;
-        border-radius: 16px !important;
-        padding: 12px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
-        border: 1px solid rgba(226,232,240,0.8) !important;
-        scroll-snap-align: start;
+        border-radius: 18px !important;
+        padding: 16px !important;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
+        border: 1px solid rgba(226,232,240,0.9) !important;
+        scroll-snap-align: center;
     }
 
-    /* 가로 스크롤바 디자인 */
+    /* 가로 스크롤바 예쁘게 디자인 */
     [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
-        height: 6px;
+        height: 8px;
     }
     [data-testid="stHorizontalBlock"]::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.03);
-        border-radius: 3px;
+        background: rgba(0,0,0,0.04);
+        border-radius: 4px;
     }
     [data-testid="stHorizontalBlock"]::-webkit-scrollbar-thumb {
-        background: rgba(100,116,139,0.3);
-        border-radius: 3px;
+        background: rgba(100,116,139,0.4);
+        border-radius: 4px;
+    }
+
+    /* 모바일 가로 스크롤 유도 안내 뱃지 스타일 */
+    .scroll-guide {
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 12px;
+        display: inline-block;
+        border: 1px solid rgba(99, 102, 241, 0.2);
     }
     </style>
     """,
@@ -178,17 +192,17 @@ if st.session_state.fullscreen_img:
   st.stop()
 
 
-# --- 상단 타이틀 (여백 압축) ---
+# --- 상단 타이틀 (여백 안정화) ---
 col_head, col_auth = st.columns([12, 1])
 
 with col_head:
   st.markdown(
-      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.5rem;"
-      " margin-bottom: -2px;'>🌍 세계 축제 이미지 분석</h1>",
+      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.6rem;"
+      " margin-bottom: 2px;'>🌍 세계 축제 이미지 분석</h1>",
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='color: #64748b; font-size: 0.8rem; font-weight: 700;"
+      "<p style='color: #64748b; font-size: 0.85rem; font-weight: 700;"
       " margin-bottom: 0px;'>모둠별 학습지 공유 보드</p>",
       unsafe_allow_html=True,
   )
@@ -215,25 +229,27 @@ with col_auth:
         st.session_state.is_teacher = False
         st.rerun()
 
-# 교사 모드용 안내 배너 (전체 삭제 버튼 완전 제거됨)
 if st.session_state.is_teacher:
   st.info("🔓 [교사 모드 활성화됨] 개별 사진 삭제가 가능합니다.")
 
-st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
+# 직관적인 가로 스크롤 안내 뱃지 추가
+st.markdown(
+    '<div style="text-align: center; margin: 10px 0 15px 0;"><span'
+    ' class="scroll-guide">👉 손가락으로 옆으로 밀어서 2~4모둠을 확인하세요!</span></div>',
+    unsafe_allow_html=True,
+)
 
 # --- 패들렛 스타일 1~4모둠 가로 스크롤 보드 ---
 st.session_state.data = load_data()
 df = st.session_state.data
 
 groups = ["1모둠", "2모둠", "3모둠", "4모둠"]
-
-# 4개의 컬럼을 생성하면 CSS에 의해 자동으로 가로 스크롤 패들렛 보드가 됩니다.
 cols = st.columns(4)
 
 for idx, group_name in enumerate(groups):
   with cols[idx]:
     st.markdown(
-        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.1rem;"
+        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.15rem;"
         f" margin-top: 0; margin-bottom: 0.5rem; text-align: center;'>📌"
         f" {group_name}</h3>",
         unsafe_allow_html=True,
@@ -269,8 +285,8 @@ for idx, group_name in enumerate(groups):
 
     if group_df.empty:
       st.markdown(
-          "<p style='text-align: center; color: #94a3b8; font-size: 0.8rem;"
-          " margin-top: 1.5rem;'>제출된 사진이 없습니다.</p>",
+          "<p style='text-align: center; color: #94a3b8; font-size: 0.85rem;"
+          " margin-top: 2rem;'>제출된 사진이 없습니다.</p>",
           unsafe_allow_html=True,
       )
     else:
