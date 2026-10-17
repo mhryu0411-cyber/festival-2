@@ -8,12 +8,12 @@ import streamlit as st
 # 한국 시간대(KST) 정의
 KST = pytz.timezone("Asia/Seoul")
 
-# 페이지 기본 설정 (모바일 최적화 레이아웃)
+# 페이지 기본 설정 (Wide 레이아웃)
 st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 모바일 가로 스크롤 패들렛 스타일 및 나눔고딕 최우선 적용 CSS
+# 상단 여백 축소, 가로 스크롤 패들렛 스타일, 나눔고딕 최우선 적용 CSS
 st.markdown(
     """
     <style>
@@ -21,6 +21,14 @@ st.markdown(
 
     html, body, [class*="css"], [class*="st-"], button, input, textarea, div, span, h1, h2, h3, h4, p {
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    /* 상단 기본 여백(padding) 줄이기 */
+    .block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
 
     /* 아주 은은하고 투명한 파스텔 배경 */
@@ -44,6 +52,51 @@ st.markdown(
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
+    }
+
+    /* 진짜 패들렛 스타일 가로 스크롤 컨테이너 */
+    .padlet-board-wrapper {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding-bottom: 15px;
+        width: 100%;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .padlet-column-box {
+        flex: 0 0 82vw;
+        max-width: 320px;
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border: 1px solid rgba(226,232,240,0.8);
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        min-height: 68vh;
+        max-height: 75vh;
+    }
+
+    .padlet-items-container {
+        overflow-y: auto;
+        flex-grow: 1;
+        padding-right: 4px;
+    }
+
+    /* 스크롤바 디자인 예쁘게 */
+    .padlet-board-wrapper::-webkit-scrollbar {
+        height: 6px;
+    }
+    .padlet-board-wrapper::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.03);
+        border-radius: 3px;
+    }
+    .padlet-board-wrapper::-webkit-scrollbar-thumb {
+        background: rgba(100,116,139,0.3);
+        border-radius: 3px;
     }
     </style>
     """,
@@ -76,7 +129,6 @@ def save_post(group_name, file_buffer):
   safe_filename = f"{os.urandom(6).hex()}.{file_extension}"
   file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-  # 업로드 로딩 진행률 표시
   progress_text = "업로드 중입니다.. 🥳"
   progress_bar = st.progress(0, text=progress_text)
 
@@ -109,17 +161,6 @@ def save_post(group_name, file_buffer):
   st.session_state.data.to_csv(CSV_FILE, index=False)
 
 
-def delete_all_posts():
-  if os.path.exists(UPLOAD_DIR):
-    for f in os.listdir(UPLOAD_DIR):
-      file_p = os.path.join(UPLOAD_DIR, f)
-      if os.path.isfile(file_p):
-        os.remove(file_p)
-  empty_df = pd.DataFrame(columns=["group", "filename", "timestamp"])
-  empty_df.to_csv(CSV_FILE, index=False)
-  st.session_state.data = empty_df
-
-
 # 세션 상태 초기화
 if "data" not in st.session_state:
   st.session_state.data = load_data()
@@ -145,18 +186,18 @@ if st.session_state.fullscreen_img:
   st.stop()
 
 
-# --- 상단 타이틀 ---
+# --- 상단 타이틀 (여백 압축) ---
 col_head, col_auth = st.columns([12, 1])
 
 with col_head:
   st.markdown(
-      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.6rem;"
-      " margin-bottom: 0px;'>🌍 세계 축제 이미지 분석</h1>",
+      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.5rem;"
+      " margin-bottom: -2px;'>🌍 세계 축제 이미지 분석</h1>",
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='color: #64748b; font-size: 0.85rem; font-weight: 700;"
-      " margin-top: -2px;'>모둠별 학습지 공유 보드</p>",
+      "<p style='color: #64748b; font-size: 0.8rem; font-weight: 700;"
+      " margin-bottom: 0px;'>모둠별 학습지 공유 보드</p>",
       unsafe_allow_html=True,
   )
 
@@ -182,96 +223,94 @@ with col_auth:
         st.session_state.is_teacher = False
         st.rerun()
 
-# 교사 모드용 배너 및 전체 삭제 버튼
+# 교사 모드용 안내 배너 (전체 삭제 버튼 제거됨)
 if st.session_state.is_teacher:
-  col_info, col_del_all = st.columns([7, 3])
-  with col_info:
-    st.info("🔓 [교사 모드] 사진 삭제 및 관리 가능")
-  with col_del_all:
-    if st.button("🗑️ 전체 삭제", type="primary", use_container_width=True):
-      delete_all_posts()
-      st.success("모두 삭제됨!")
-      st.rerun()
+  st.info("🔓 [교사 모드 활성화됨] 개별 사진 삭제가 가능합니다.")
 
-st.divider()
+st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
 
-# --- 패들렛 스타일 1~4모둠 보드 ---
+# --- 패들렛 스타일 가로 스크롤 보드 ---
 st.session_state.data = load_data()
 df = st.session_state.data
 
 groups = ["1모둠", "2모둠", "3모둠", "4모둠"]
-cols = st.columns(4)
 
-for idx, group_name in enumerate(groups):
-  with cols[idx]:
+# HTML 가로 스크롤 래퍼 시작
+st.markdown('<div class="padlet-board-wrapper">', unsafe_allow_html=True)
+
+for group_name in groups:
+  # 각 모둠 컬럼 박스 시작
+  st.markdown(
+      f'<div class="padlet-column-box"><h3 style="font-weight: 800; color:'
+      f' #1e293b; font-size: 1.05rem; margin-top: 0; margin-bottom: 0.5rem;'
+      f' text-align: center;">📌 {group_name}</h3>',
+      unsafe_allow_html=True,
+  )
+
+  # 모둠별 사진 업로드 팝오버
+  with st.popover(f"➕ 사진 올리기", use_container_width=True):
     st.markdown(
-        f"""
-        <div style="background-color: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid rgba(226,232,240,0.8); margin-bottom: 1rem; min-height: 70vh; display: flex; flex-direction: column;">
-            <h3 style="font-weight: 800; color: #1e293b; font-size: 1.1rem; margin-bottom: 0.5rem; text-align: center;">📌 {group_name}</h3>
-        """,
+        f"<p style='font-weight: 800; font-size: 13px; color: #1e293b;"
+        f" margin-bottom: 8px;'>📸 {group_name} 사진 첨부</p>",
         unsafe_allow_html=True,
     )
 
-    # 모둠별 사진 업로드 팝오버 (파일 업로더 하나로 통일하여 모바일에서 누르면 카메라/앨범 선택지 자동 제공)
-    with st.popover(f"➕ 사진 올리기", use_container_width=True):
-      st.markdown(
-          f"<p style='font-weight: 800; font-size: 13px; color: #1e293b;"
-          f" margin-bottom: 8px;'>📸 {group_name} 사진 첨부</p>",
-          unsafe_allow_html=True,
-      )
+    uploaded_file = st.file_uploader(
+        "사진 선택 또는 촬영",
+        type=["jpg", "jpeg", "png"],
+        key=f"uploader_{group_name}",
+        label_visibility="collapsed",
+    )
 
-      # 모바일 기기에서 터치 시 카메라 직접 촬영 또는 앨범 선택이 모두 가능한 통합 업로더
-      uploaded_file = st.file_uploader(
-          "사진 선택 또는 촬영",
-          type=["jpg", "jpeg", "png"],
-          key=f"uploader_{group_name}",
-          label_visibility="collapsed",
-      )
+    if uploaded_file is not None:
+      file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+      if st.session_state[f"last_processed_{group_name}"] != file_id:
+        st.session_state[f"last_processed_{group_name}"] = file_id
+        save_post(group_name, uploaded_file)
+        st.success("등록 완료!")
+        st.rerun()
 
-      if uploaded_file is not None:
-        file_id = f"{uploaded_file.name}_{uploaded_file.size}"
-        if st.session_state[f"last_processed_{group_name}"] != file_id:
-          st.session_state[f"last_processed_{group_name}"] = file_id
-          save_post(group_name, uploaded_file)
-          st.success("등록 완료!")
-          st.rerun()
+  st.markdown(
+      '<div class="padlet-items-container">', unsafe_allow_html=True
+  )
 
-    st.write("")
+  # 해당 모둠 게시물 카드 목록 (최신순)
+  group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
 
-    # 해당 모둠 게시물 카드 목록
-    group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
+  if group_df.empty:
+    st.markdown(
+        "<p style='text-align: center; color: #94a3b8; font-size: 0.8rem;"
+        " margin-top: 1.5rem;'>제출된 사진이 없습니다.</p>",
+        unsafe_allow_html=True,
+    )
+  else:
+    for i, row in group_df.iterrows():
+      with st.container(border=True):
+        file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
-    if group_df.empty:
-      st.markdown(
-          "<p style='text-align: center; color: #94a3b8; font-size: 0.85rem;"
-          " margin-top: 2rem;'>제출된 사진이 없습니다.</p>",
-          unsafe_allow_html=True,
-      )
-    else:
-      for i, row in group_df.iterrows():
-        with st.container(border=True):
-          file_path = os.path.join(UPLOAD_DIR, row["filename"])
+        if os.path.exists(file_path):
+          if st.button("🔍", key=f"zoom_{row['filename']}"):
+            st.session_state.fullscreen_img = file_path
+            st.rerun()
 
-          if os.path.exists(file_path):
-            if st.button("🔍", key=f"zoom_{row['filename']}"):
-              st.session_state.fullscreen_img = file_path
-              st.rerun()
+          st.image(file_path, use_container_width=True)
+        else:
+          st.error("파일 없음")
 
-            st.image(file_path, use_container_width=True)
-          else:
-            st.error("파일 없음")
+        st.caption(f"시간: {row['timestamp']}")
 
-          st.caption(f"시간: {row['timestamp']}")
+        if st.session_state.is_teacher:
+          if st.button("🗑️ 삭제", key=f"del_{row['filename']}"):
+            if os.path.exists(file_path):
+              os.remove(file_path)
+            st.session_state.data = st.session_state.data[
+                st.session_state.data["filename"] != row["filename"]
+            ]
+            st.session_state.data.to_csv(CSV_FILE, index=False)
+            st.success("삭제됨")
+            st.rerun()
 
-          if st.session_state.is_teacher:
-            if st.button("🗑️ 삭제", key=f"del_{row['filename']}"):
-              if os.path.exists(file_path):
-                os.remove(file_path)
-              st.session_state.data = st.session_state.data[
-                  st.session_state.data["filename"] != row["filename"]
-              ]
-              st.session_state.data.to_csv(CSV_FILE, index=False)
-              st.success("삭제됨")
-              st.rerun()
+  st.markdown("</div></div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+# HTML 가로 스크롤 래퍼 종료
+st.markdown("</div>", unsafe_allow_html=True)
