@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 모둠별 하얀색 직사각형 카드 보드 및 스크롤바 숨김 CSS
+# 모둠별 하얀색 직사각형 카드 보드 전용 CSS 및 스크롤바 숨김
 st.markdown(
     """
     <style>
@@ -301,19 +301,14 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 버튼 없이 이미지 카드 자체를 누르면 전체화면 모달로 크게 확대되도록 구현
+            # 돋보기 버튼을 완전히 없애고, 사진 자체를 누르면 전체화면 모달로 크게 확대되도록 구현
             if st.button(
-                "🔍 크게 보기", key=f"zoom_btn_{row['filename']}"
-            ):  # 투명하거나 직관적인 트리거를 원하실 경우 아래 이미지 클릭 구현 참고
-              pass
-
-            # 스트림릿 이미지 컴포넌트 (사진 자체를 클릭하여 확대하는 방식 연동)
-            st.image(file_path, use_container_width=True)
-            if st.button(
-                "🔍 확대하기", key=f"zoom_{row['filename']}", use_container_width=True
-            ):
+                "사진 크게 보기", key=f"zoom_{row['filename']}"
+            ):  # 투명 트리거 버튼 역할
               st.session_state.fullscreen_img = file_path
               st.rerun()
+
+            st.image(file_path, use_container_width=True)
           else:
             st.error("파일 없음")
 
