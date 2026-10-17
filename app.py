@@ -123,8 +123,12 @@ def load_data():
     return pd.DataFrame(columns=["group", "filename", "timestamp"])
 
 
-def save_post(group_name, pil_image):
-  safe_filename = f"{os.urandom(6).hex()}.jpg"
+def save_post(group_name, file_buffer):
+  file_extension = "jpg"
+  if hasattr(file_buffer, "name") and "." in file_buffer.name:
+    file_extension = file_buffer.name.split(".")[-1]
+
+  safe_filename = f"{os.urandom(6).hex()}.{file_extension}"
   file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
   progress_text = "업로드 중입니다.. 🥳"
@@ -136,7 +140,8 @@ def save_post(group_name, pil_image):
         percent_complete, text=f"{progress_text} ({percent_complete}%)"
     )
 
-  pil_image.convert("RGB").save(file_path, "JPEG", quality=90)
+  with open(file_path, "wb") as f:
+    f.write(file_buffer.getbuffer())
 
   progress_bar.progress(100, text=f"{progress_text} (100%)")
   time.sleep(0.2)
@@ -172,10 +177,8 @@ if "fullscreen_rotation" not in st.session_state:
   st.session_state.fullscreen_rotation = 0
 
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
-  if f"pending_file_{g}" not in st.session_state:
-    st.session_state[f"pending_file_{g}"] = None
-  if f"rotation_{g}" not in st.session_state:
-    st.session_state[f"rotation_{g}"] = 0
+  if f"last_processed_{g}" not in st.session_state:
+    st.session_state[f"last_processed_{g}"] = None
 
 
 # --- 전체 화면 모달 (사진 클릭 시 웹페이지 장악 + 회전 기능 포함) ---
@@ -262,7 +265,7 @@ for idx, group_name in enumerate(groups):
         unsafe_allow_html=True,
     )
 
-    # 모둠별 사진 업로드 팝오버 (버튼 가운데 정렬 느낌을 위해 카드 너비에 맞춤)
+    # 모둠별 사진 업로드 팝오버
     with st.popover(f"➕ 사진 올리기", use_container_width=True):
       st.markdown(
           f"<p style='font-weight: 800; font-size: 13px; color: #1e293b;"
@@ -278,42 +281,14 @@ for idx, group_name in enumerate(groups):
           label_visibility="collapsed",
       )
 
+      # 사진 선택 즉시 업로드 처리 (중복 방지 적용)
       if uploaded_file is not None:
-        if st.session_state[f"pending_file_{group_name}"] != uploaded_file:
-          st.session_state[f"pending_file_{group_name}"] = uploaded_file
-          st.session_state[f"rotation_{group_name}"] = 0
-
-      if st.session_state[f"pending_file_{group_name}"] is not None:
-        pending = st.session_state[f"pending_file_{group_name}"]
-        st.warning("이 사진을 올리시겠습니까?")
-
-        img_preview = Image.open(pending)
-        current_rot = st.session_state[f"rotation_{group_name}"]
-        if current_rot != 0:
-          img_preview = img_preview.rotate(current_rot, expand=True)
-
-        st.image(img_preview, use_container_width=True)
-
-        if st.button(
-            "🔄 90° 회전", key=f"rot_btn_{group_name}", use_container_width=True
-        ):
-          st.session_state[f"rotation_{group_name}"] = (current_rot - 90) % 360
+        file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+        if st.session_state[f"last_processed_{group_name}"] != file_id:
+          st.session_state[f"last_processed_{group_name}"] = file_id
+          save_post(group_name, uploaded_file)
+          st.success("등록 완료!")
           st.rerun()
-
-        # 크기를 줄인 올리기 / 취소 버튼
-        col_yes, col_no = st.columns(2)
-        with col_yes:
-          if st.button("✅ 올리기", key=f"confirm_{group_name}"):
-            save_post(group_name, img_preview)
-            st.session_state[f"pending_file_{group_name}"] = None
-            st.session_state[f"rotation_{group_name}"] = 0
-            st.success("등록 완료!")
-            st.rerun()
-        with col_no:
-          if st.button("❌ 취소", key=f"cancel_{group_name}"):
-            st.session_state[f"pending_file_{group_name}"] = None
-            st.session_state[f"rotation_{group_name}"] = 0
-            st.rerun()
 
     st.write("")
 
