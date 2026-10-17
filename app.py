@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 import streamlit as st
 
@@ -81,8 +82,22 @@ def save_post(group_name, file_buffer):
   safe_filename = f"{os.urandom(6).hex()}.{file_extension}"
   file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
+  # 업로드 로딩 진행률 표시 (0% ~ 100%)
+  progress_text = "업로드 중입니다.. 🥳"
+  progress_bar = st.progress(0, text=progress_text)
+
+  for percent_complete in range(1, 101, 20):
+    time.sleep(0.05)
+    progress_bar.progress(
+        percent_complete, text=f"{progress_text} ({percent_complete}%)"
+    )
+
   with open(file_path, "wb") as f:
     f.write(file_buffer.getbuffer())
+
+  progress_bar.progress(100, text=f"{progress_text} (100%)")
+  time.sleep(0.2)
+  progress_bar.empty()
 
   new_row = pd.DataFrame(
       [{
@@ -98,6 +113,17 @@ def save_post(group_name, file_buffer):
   st.session_state.data.to_csv(CSV_FILE, index=False)
 
 
+def delete_all_posts():
+  if os.path.exists(UPLOAD_DIR):
+    for f in os.listdir(UPLOAD_DIR):
+      file_p = os.path.join(UPLOAD_DIR, f)
+      if os.path.isfile(file_p):
+        os.remove(file_p)
+  empty_df = pd.DataFrame(columns=["group", "filename", "timestamp"])
+  empty_df.to_csv(CSV_FILE, index=False)
+  st.session_state.data = empty_df
+
+
 # 세션 상태 초기화
 if "data" not in st.session_state:
   st.session_state.data = load_data()
@@ -108,10 +134,12 @@ if "is_teacher" not in st.session_state:
 if "zoomed_image" not in st.session_state:
   st.session_state.zoomed_image = None
 
-# 모둠별 카메라/앨범 입력 상태 관리
+# 모둠별 카메라/앨범 및 마지막 처리 파일 중복 방지 키
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
   if f"mode_{g}" not in st.session_state:
     st.session_state[f"mode_{g}"] = "cam"
+  if f"last_processed_{g}" not in st.session_state:
+    st.session_state[f"last_processed_{g}"] = None
 
 
 # --- 상단 타이틀 ---
@@ -151,12 +179,20 @@ with col_auth:
         st.session_state.is_teacher = False
         st.rerun()
 
+# 교사 모드용 배너 및 전체 삭제 버튼
 if st.session_state.is_teacher:
-  st.info("🔓 [교사 모드 활성화됨] 사진을 크게 보거나 삭제할 수 있습니다.")
+  col_info, col_del_all = st.columns([8, 2])
+  with col_info:
+    st.info("🔓 [교사 모드 활성화됨] 사진 삭제 및 관리가 가능합니다.")
+  with col_del_all:
+    if st.button("🗑️ 전체 사진 삭제", type="primary", use_container_width=True):
+      delete_all_posts()
+      st.success("모든 사진이 완전히 삭제되었습니다.")
+      st.rerun()
 
 st.divider()
 
-# --- 사진 크게 보기 ---
+# --- 사진 크게 보기 (모든 사용자 이용 가능) ---
 if st.session_state.zoomed_image:
   with st.container(border=True):
     col_img, col_close = st.columns([5, 1])
@@ -196,7 +232,7 @@ for idx, group_name in enumerate(groups):
           unsafe_allow_html=True,
       )
 
-      # [📷 카메라] / [📁 앨범] 직관적인 버튼 선택
+      # [📷 카메라] / [📁 앨범] 버튼 선택
       c1, c2 = st.columns(2)
       with c1:
         if st.button(
@@ -212,7 +248,6 @@ for idx, group_name in enumerate(groups):
           st.rerun()
 
       uploaded_file = None
-      # 선택된 모드에 따라 입력창 전환
       if st.session_state[f"mode_{group_name}"] == "cam":
         uploaded_file = st.camera_input(
             "촬영하기", key=f"cam_{group_name}", label_visibility="collapsed"
@@ -225,10 +260,14 @@ for idx, group_name in enumerate(groups):
             label_visibility="collapsed",
         )
 
+      # 중복 저장 방지 처리 및 1회만 정상 제출
       if uploaded_file is not None:
-        save_post(group_name, uploaded_file)
-        st.success("등록 완료!")
-        st.rerun()
+        file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+        if st.session_state[f"last_processed_{group_name}"] != file_id:
+          st.session_state[f"last_processed_{group_name}"] = file_id
+          save_post(group_name, uploaded_file)
+          st.success("등록 완료!")
+          st.rerun()
 
     st.write("")
 
@@ -245,6 +284,7 @@ for idx, group_name in enumerate(groups):
           if os.path.exists(file_path):
             st.image(file_path, use_container_width=True)
 
+            # 누구나 사용 가능한 크게 보기 버튼
             if st.button("🔍 크게 보기", key=f"zoom_{row['filename']}"):
               st.session_state.zoomed_image = file_path
               st.session_state.zoomed_info = f"[{row['group']}] 제출된 사진"
@@ -254,6 +294,7 @@ for idx, group_name in enumerate(groups):
 
           st.caption(f"시간: {row['timestamp']}")
 
+          # 교사 모드일 때 개별 삭제 버튼 표시
           if st.session_state.is_teacher:
             if st.button("🗑️ 삭제", key=f"del_{row['filename']}"):
               if os.path.exists(file_path):
