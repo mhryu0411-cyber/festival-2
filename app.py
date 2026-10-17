@@ -7,24 +7,23 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 커스텀 CSS: 확실한 나눔고딕, 감성 파스텔 그라데이션 배경, expand_more 숨김, 콤팩트 UI
+# 나눔고딕 최우선 적용 & 초극미세 투명 파스텔 배경 CSS
 st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
 
-    /* 모든 요소에 나눔고딕 최우선 적용 */
     html, body, [class*="css"], [class*="st-"], button, input, textarea, div, span, h1, h2, h3, h4, p {
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* 화사하고 예쁜 파스텔톤 그라데이션 배경 (연보라 & 스카이블루 & 연핑크 믹스) */
+    /* 아주 은은하고 투명도가 대폭 높아진 파스텔 배경 */
     .stApp {
-        background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 50%, #fbc2eb 100%) !important;
+        background: linear-gradient(135deg, rgba(224, 195, 252, 0.15) 0%, rgba(142, 197, 252, 0.15) 50%, rgba(251, 194, 235, 0.15) 100%) !important;
         background-attachment: fixed !important;
     }
 
-    /* Streamlit expand_more 글자 및 유출 아이콘 완전 차단 */
+    /* Streamlit 아이콘 텍스트 유출 차단 */
     [data-testid="stIconMaterial"], 
     .material-symbols-outlined,
     span[data-testid="stHeaderActionElements"] {
@@ -33,7 +32,7 @@ st.markdown(
         display: none !important;
     }
 
-    /* ⚙️ 팝오버 버튼 투명화 및 깔끔 처리 */
+    /* ⚙️ 아이콘 버튼 디자인 */
     [data-testid="stPopover"] button {
         border: none !important;
         background: transparent !important;
@@ -42,39 +41,14 @@ st.markdown(
         font-size: 1.2rem !important;
     }
 
-    /* 패들렛 카드 스타일 (약간의 투명도와 그림자로 예쁜 느낌 강조) */
+    /* 깔끔한 백색 패들렛 카드 */
     div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
-        background-color: rgba(255, 255, 255, 0.88) !important;
-        backdrop-filter: blur(8px);
+        background-color: rgba(255, 255, 255, 0.95) !important;
         padding: 0.8rem !important;
-        border-radius: 16px !important;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
-        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
         margin-bottom: 0.8rem !important;
-    }
-
-    /* 직사각형 업로드 선택 카드 스타일 (더 콤팩트하게) */
-    .choice-card-cam {
-        background-color: #e0e7ff;
-        border: 2px dashed #6366f1;
-        border-radius: 10px;
-        padding: 8px;
-        text-align: center;
-        color: #4338ca;
-        font-weight: 700;
-        font-size: 13px;
-        margin-bottom: 4px;
-    }
-    .choice-card-file {
-        background-color: #f3f4f6;
-        border: 2px dashed #9ca3af;
-        border-radius: 10px;
-        padding: 8px;
-        text-align: center;
-        color: #374151;
-        font-weight: 700;
-        font-size: 13px;
-        margin-bottom: 4px;
     }
     </style>
     """,
@@ -134,8 +108,13 @@ if "is_teacher" not in st.session_state:
 if "zoomed_image" not in st.session_state:
   st.session_state.zoomed_image = None
 
+# 모둠별 카메라/앨범 입력 상태 관리
+for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
+  if f"mode_{g}" not in st.session_state:
+    st.session_state[f"mode_{g}"] = "cam"
 
-# --- 상단 타이틀 및 티 안 나는 교사 인증 (타이틀 제거함) ---
+
+# --- 상단 타이틀 ---
 col_head, col_auth = st.columns([12, 1])
 
 with col_head:
@@ -145,7 +124,7 @@ with col_head:
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='color: #475569; font-size: 0.9rem; font-weight: 700; margin-top:"
+      "<p style='color: #64748b; font-size: 0.9rem; font-weight: 700; margin-top:"
       " -4px;'>모둠별 학습지 공유 보드</p>",
       unsafe_allow_html=True,
   )
@@ -173,11 +152,11 @@ with col_auth:
         st.rerun()
 
 if st.session_state.is_teacher:
-  st.info("🔓 [교사 모드 활성화됨] 사진을 클릭하여 크게 보거나 삭제할 수 있습니다.")
+  st.info("🔓 [교사 모드 활성화됨] 사진을 크게 보거나 삭제할 수 있습니다.")
 
 st.divider()
 
-# --- 사진 크게 보기 전용 모달 박스 ---
+# --- 사진 크게 보기 ---
 if st.session_state.zoomed_image:
   with st.container(border=True):
     col_img, col_close = st.columns([5, 1])
@@ -209,48 +188,41 @@ for idx, group_name in enumerate(groups):
         unsafe_allow_html=True,
     )
 
-    # 모둠별 사진 업로드 소형 팝오버 (작은 모달 스타일)
+    # 모둠별 사진 업로드 팝오버
     with st.popover(f"➕ {group_name} 사진 올리기", use_container_width=True):
       st.markdown(
           f"<p style='font-weight: 800; font-size: 14px; color: #1e293b;"
-          f" margin-bottom: 8px;'>📸 {group_name} 사진 첨부</p>",
+          f" margin-bottom: 10px;'>📸 {group_name} 사진 첨부</p>",
           unsafe_allow_html=True,
       )
 
-      # 콤팩트한 2개 선택 카드
-      col_btn1, col_btn2 = st.columns(2)
-      cam_active = False
-      file_active = False
-
-      with col_btn1:
-        st.markdown(
-            '<div class="choice-card-cam">📷 카메라</div>',
-            unsafe_allow_html=True,
-        )
-
-      with col_btn2:
-        st.markdown(
-            '<div class="choice-card-file">📁 앨범</div>',
-            unsafe_allow_html=True,
-        )
-
-      tab_choice = st.radio(
-          "첨부 방식",
-          ["📷 카메라 촬영", "📁 파일 / 앨범 선택"],
-          key=f"radio_{group_name}",
-          label_visibility="collapsed",
-      )
+      # [📷 카메라] / [📁 앨범] 직관적인 버튼 선택
+      c1, c2 = st.columns(2)
+      with c1:
+        if st.button(
+            "📷 카메라", key=f"btn_cam_{group_name}", use_container_width=True
+        ):
+          st.session_state[f"mode_{group_name}"] = "cam"
+          st.rerun()
+      with c2:
+        if st.button(
+            "📁 앨범", key=f"btn_file_{group_name}", use_container_width=True
+        ):
+          st.session_state[f"mode_{group_name}"] = "file"
+          st.rerun()
 
       uploaded_file = None
-      if "카메라" in tab_choice:
+      # 선택된 모드에 따라 입력창 전환
+      if st.session_state[f"mode_{group_name}"] == "cam":
         uploaded_file = st.camera_input(
-            "촬영하기", key=f"cam_input_{group_name}"
+            "촬영하기", key=f"cam_{group_name}", label_visibility="collapsed"
         )
       else:
         uploaded_file = st.file_uploader(
             "사진 선택",
             type=["jpg", "jpeg", "png"],
-            key=f"file_input_{group_name}",
+            key=f"file_{group_name}",
+            label_visibility="collapsed",
         )
 
       if uploaded_file is not None:
@@ -260,7 +232,7 @@ for idx, group_name in enumerate(groups):
 
     st.write("")
 
-    # 해당 모둠 게시물 카드 리스트 (최신순)
+    # 해당 모둠 게시물 카드 (최신순)
     group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
 
     if group_df.empty:
