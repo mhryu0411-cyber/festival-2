@@ -14,7 +14,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 모둠별 하얀색 직사각형 카드 보드 및 스크롤바 숨김 CSS
+# 완벽한 패들렛 스타일 하얀 직사각형 카드 CSS 및 스크롤바 숨김
 st.markdown(
     """
     <style>
@@ -26,7 +26,7 @@ st.markdown(
 
     /* 상단바 여백 넉넉하게 확보 */
     .block-container {
-        padding-top: 2.8rem !important;
+        padding-top: 2.5rem !important;
         padding-bottom: 2.5rem !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
@@ -55,34 +55,43 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 1~4모둠 컬럼을 가로 스크롤 패들렛 보드로 정렬 */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        gap: 20px !important;
-        padding-bottom: 20px !important;
+    /* 1~4모둠 가로 스크롤 패들렛 래퍼 */
+    .padlet-board-wrapper {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 20px;
+        width: 100%;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
 
-    [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
+    .padlet-board-wrapper::-webkit-scrollbar {
         display: none;
     }
 
-    /* 각 모둠 영역을 선명하고 뚜렷한 하얀색 직사각형 카드로 독립 분리 */
-    [data-testid="column"] {
-        flex: 0 0 88vw !important;
-        max-width: 350px !important;
-        min-width: 300px !important;
+    /* 완벽하게 분리된 개별 하얀 직사각형 카드 (패들렛 박스) */
+    .padlet-card-box {
+        flex: 0 0 85vw;
+        max-width: 330px;
+        min-width: 290px;
         background-color: #ffffff !important;
         border-radius: 20px !important;
         padding: 20px !important;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
         border: 1px solid #e2e8f0 !important;
         scroll-snap-align: center;
+        display: flex;
+        flex-direction: column;
+        max-height: 75vh;
+    }
+
+    .padlet-scroll-area {
+        overflow-y: auto;
+        flex-grow: 1;
+        padding-right: 4px;
+        margin-top: 10px;
     }
 
     /* 모바일 가로 스크롤 유도 안내 뱃지 스타일 */
@@ -134,7 +143,6 @@ def save_post(group_name, pil_image):
         percent_complete, text=f"{progress_text} ({percent_complete}%)"
     )
 
-  # PIL Image를 JPG로 저장
   pil_image.convert("RGB").save(file_path, "JPEG", quality=90)
 
   progress_bar.progress(100, text=f"{progress_text} (100%)")
@@ -183,7 +191,6 @@ if st.session_state.fullscreen_img:
     file_path = st.session_state.fullscreen_img
     if os.path.exists(file_path):
       img = Image.open(file_path)
-      # 누적된 회전 각도 적용
       if st.session_state.fullscreen_rotation != 0:
         img = img.rotate(st.session_state.fullscreen_rotation, expand=True)
       st.image(img, use_container_width=True)
@@ -209,7 +216,7 @@ col_head, col_auth = st.columns([12, 1])
 with col_head:
   st.markdown(
       "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.8rem;"
-      " margin-top: 10px; margin-bottom: 5px;'>🌍 세계 축제 이미지 분석</h1>",
+      " margin-top: 5px; margin-bottom: 5px;'>🌍 세계 축제 이미지 분석</h1>",
       unsafe_allow_html=True,
   )
 
@@ -245,19 +252,24 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- 패들렛 스타일 1~4모둠 가로 스크롤 보드 ---
+# --- 패들렛 스타일 1~4모둠 가로 스크롤 보드 (완벽한 하얀색 직사각형 박스 구현) ---
 st.session_state.data = load_data()
 df = st.session_state.data
 
 groups = ["1모둠", "2모둠", "3모둠", "4모둠"]
+
+# HTML 가로 스크롤 래퍼 시작
+st.markdown('<div class="padlet-board-wrapper">', unsafe_allow_html=True)
+
 cols = st.columns(4)
 
 for idx, group_name in enumerate(groups):
   with cols[idx]:
+    # 개별 하얀 직사각형 카드 박스 시작
     st.markdown(
-        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.2rem;"
-        f" margin-top: 0; margin-bottom: 0.8rem; text-align: center;'>📌"
-        f" {group_name}</h3>",
+        f'<div class="padlet-card-box"><h3 style="font-weight: 800; color:'
+        f' #1e293b; font-size: 1.2rem; margin-top: 0; margin-bottom: 0.8rem;'
+        f' text-align: center;">📌 {group_name}</h3>',
         unsafe_allow_html=True,
     )
 
@@ -269,7 +281,6 @@ for idx, group_name in enumerate(groups):
           unsafe_allow_html=True,
       )
 
-      # 1단계: 사진 파일 선택
       uploaded_file = st.file_uploader(
           "사진 선택 또는 촬영",
           type=["jpg", "jpeg", "png"],
@@ -278,17 +289,14 @@ for idx, group_name in enumerate(groups):
       )
 
       if uploaded_file is not None:
-        # 새로운 파일이 들어오면 임시 저장 및 회전 각도 초기화
         if st.session_state[f"pending_file_{group_name}"] != uploaded_file:
           st.session_state[f"pending_file_{group_name}"] = uploaded_file
           st.session_state[f"rotation_{group_name}"] = 0
 
-      # 2단계: "이 사진을 올리시겠습니까?" 확인 창 + 회전 기능 표시
       if st.session_state[f"pending_file_{group_name}"] is not None:
         pending = st.session_state[f"pending_file_{group_name}"]
         st.warning("이 사진을 올리시겠습니까?")
 
-        # PIL을 이용한 미리보기 회전 처리
         img_preview = Image.open(pending)
         current_rot = st.session_state[f"rotation_{group_name}"]
         if current_rot != 0:
@@ -296,32 +304,30 @@ for idx, group_name in enumerate(groups):
 
         st.image(img_preview, use_container_width=True)
 
-        # 업로드 전 회전 버튼
-        if st.button("🔄 90° 회전", key=f"rot_btn_{group_name}", use_container_width=True):
+        if st.button(
+            "🔄 90° 회전", key=f"rot_btn_{group_name}", use_container_width=True
+        ):
           st.session_state[f"rotation_{group_name}"] = (current_rot - 90) % 360
           st.rerun()
 
+        # 크기를 줄인 올리기 / 취소 버튼
         col_yes, col_no = st.columns(2)
         with col_yes:
-          if st.button(
-              "✅ 올리기", key=f"confirm_{group_name}", use_container_width=True
-          ):
+          if st.button("✅ 올리기", key=f"confirm_{group_name}"):
             save_post(group_name, img_preview)
             st.session_state[f"pending_file_{group_name}"] = None
             st.session_state[f"rotation_{group_name}"] = 0
             st.success("등록 완료!")
             st.rerun()
         with col_no:
-          if st.button(
-              "❌ 취소", key=f"cancel_{group_name}", use_container_width=True
-          ):
+          if st.button("❌ 취소", key=f"cancel_{group_name}"):
             st.session_state[f"pending_file_{group_name}"] = None
             st.session_state[f"rotation_{group_name}"] = 0
             st.rerun()
 
-    st.write("")
+    # 스크롤 가능한 카드 내부 영역 시작
+    st.markdown('<div class="padlet-scroll-area">', unsafe_allow_html=True)
 
-    # 해당 모둠 게시물 카드 목록 (최신순)
     group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
 
     if group_df.empty:
@@ -336,20 +342,10 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 사진 자체를 누르면 전체화면 모달로 확대되도록 구현 (버튼 아예 없음)
-            if st.button(
-                "🔍 크게 보기", key=f"zoom_{row['filename']}"
-            ):  # 실제 렌더링되지 않거나 투명하게 처리된 트리거 대신 아래 이미지 클릭 구조 활용
-              pass
-
-            # 이미지 자체를 클릭하면 전체 화면으로 뜨도록 세션 상태 연결
-            if st.image(file_path, use_container_width=True):
-              pass
-
-            # 사용자가 편하게 사진을 터치해서 확대할 수 있도록 안내 텍스트나 투명 버튼 대용
+            st.image(file_path, use_container_width=True)
             if st.button(
                 "🔍 사진 확대해서 보기",
-                key=f"zoom_click_{row['filename']}",
+                key=f"zoom_{row['filename']}",
                 use_container_width=True,
             ):
               st.session_state.fullscreen_img = file_path
@@ -370,3 +366,9 @@ for idx, group_name in enumerate(groups):
               st.session_state.data.to_csv(CSV_FILE, index=False)
               st.success("삭제됨")
               st.rerun()
+
+    # 카드 박스 및 스크롤 영역 닫기
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
+# 가로 스크롤 래퍼 닫기
+st.markdown("</div>", unsafe_allow_html=True)
