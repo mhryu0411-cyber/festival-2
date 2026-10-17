@@ -8,12 +8,12 @@ import streamlit as st
 # 한국 시간대(KST) 정의
 KST = pytz.timezone("Asia/Seoul")
 
-# 페이지 기본 설정
+# 페이지 기본 설정 (모바일 최적화 레이아웃)
 st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 나눔고딕 최우선 적용 & 초극미세 투명 파스텔 배경 CSS
+# 모바일 가로 스크롤 패들렛 스타일 및 나눔고딕 최우선 적용 CSS
 st.markdown(
     """
     <style>
@@ -23,7 +23,7 @@ st.markdown(
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* 아주 은은하고 투명도가 대폭 높아진 파스텔 배경 */
+    /* 아주 은은하고 투명한 파스텔 배경 */
     .stApp {
         background: linear-gradient(135deg, rgba(224, 195, 252, 0.15) 0%, rgba(142, 197, 252, 0.15) 50%, rgba(251, 194, 235, 0.15) 100%) !important;
         background-attachment: fixed !important;
@@ -38,22 +38,12 @@ st.markdown(
         display: none !important;
     }
 
-    /* ⚙️ 아이콘 및 사진 팝오버 투명 스타일링 */
+    /* 설정 아이콘 버튼 투명 처리 */
     [data-testid="stPopover"] button {
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-    }
-
-    /* 깔끔한 백색 패들렛 카드 */
-    div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        padding: 0.8rem !important;
-        border-radius: 14px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-        border: 1px solid rgba(226, 232, 240, 0.8) !important;
-        margin-bottom: 0.8rem !important;
     }
     </style>
     """,
@@ -86,7 +76,7 @@ def save_post(group_name, file_buffer):
   safe_filename = f"{os.urandom(6).hex()}.{file_extension}"
   file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-  # 업로드 로딩 진행률 표시 (0% ~ 100%)
+  # 업로드 로딩 진행률 표시
   progress_text = "업로드 중입니다.. 🥳"
   progress_bar = st.progress(0, text=progress_text)
 
@@ -103,7 +93,6 @@ def save_post(group_name, file_buffer):
   time.sleep(0.2)
   progress_bar.empty()
 
-  # 한국 시간(KST)으로 기록
   kst_now = datetime.now(KST).strftime("%H:%M:%S")
 
   new_row = pd.DataFrame(
@@ -138,12 +127,22 @@ if "data" not in st.session_state:
 if "is_teacher" not in st.session_state:
   st.session_state.is_teacher = False
 
-# 모둠별 카메라/앨범 및 마지막 처리 파일 중복 방지 키
+if "fullscreen_img" not in st.session_state:
+  st.session_state.fullscreen_img = None
+
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
-  if f"mode_{g}" not in st.session_state:
-    st.session_state[f"mode_{g}"] = "cam"
   if f"last_processed_{g}" not in st.session_state:
     st.session_state[f"last_processed_{g}"] = None
+
+
+# --- 돋보기를 눌렀을 때 전체 화면 모달 ---
+if st.session_state.fullscreen_img:
+  with st.container():
+    st.image(st.session_state.fullscreen_img, use_container_width=True)
+    if st.button("❌ 닫기 (화면 복귀)", use_container_width=True, type="primary"):
+      st.session_state.fullscreen_img = None
+      st.rerun()
+  st.stop()
 
 
 # --- 상단 타이틀 ---
@@ -151,13 +150,13 @@ col_head, col_auth = st.columns([12, 1])
 
 with col_head:
   st.markdown(
-      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.8rem;"
+      "<h1 style='color: #1e293b; font-weight: 800; font-size: 1.6rem;"
       " margin-bottom: 0px;'>🌍 세계 축제 이미지 분석</h1>",
       unsafe_allow_html=True,
   )
   st.markdown(
-      "<p style='color: #64748b; font-size: 0.9rem; font-weight: 700; margin-top:"
-      " -4px;'>모둠별 학습지 공유 보드</p>",
+      "<p style='color: #64748b; font-size: 0.85rem; font-weight: 700;"
+      " margin-top: -2px;'>모둠별 학습지 공유 보드</p>",
       unsafe_allow_html=True,
   )
 
@@ -185,13 +184,13 @@ with col_auth:
 
 # 교사 모드용 배너 및 전체 삭제 버튼
 if st.session_state.is_teacher:
-  col_info, col_del_all = st.columns([8, 2])
+  col_info, col_del_all = st.columns([7, 3])
   with col_info:
-    st.info("🔓 [교사 모드 활성화됨] 사진 삭제 및 관리가 가능합니다.")
+    st.info("🔓 [교사 모드] 사진 삭제 및 관리 가능")
   with col_del_all:
-    if st.button("🗑️ 전체 사진 삭제", type="primary", use_container_width=True):
+    if st.button("🗑️ 전체 삭제", type="primary", use_container_width=True):
       delete_all_posts()
-      st.success("모든 사진이 완전히 삭제되었습니다.")
+      st.success("모두 삭제됨!")
       st.rerun()
 
 st.divider()
@@ -206,48 +205,29 @@ cols = st.columns(4)
 for idx, group_name in enumerate(groups):
   with cols[idx]:
     st.markdown(
-        f"<h3 style='font-weight: 800; color: #1e293b; font-size: 1.2rem;"
-        f" margin-bottom: 0.5rem;'>📌 {group_name}</h3>",
+        f"""
+        <div style="background-color: rgba(255, 255, 255, 0.95); border-radius: 16px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid rgba(226,232,240,0.8); margin-bottom: 1rem; min-height: 70vh; display: flex; flex-direction: column;">
+            <h3 style="font-weight: 800; color: #1e293b; font-size: 1.1rem; margin-bottom: 0.5rem; text-align: center;">📌 {group_name}</h3>
+        """,
         unsafe_allow_html=True,
     )
 
-    # 모둠별 사진 업로드 팝오버
-    with st.popover(f"➕ {group_name} 사진 올리기", use_container_width=True):
+    # 모둠별 사진 업로드 팝오버 (파일 업로더 하나로 통일하여 모바일에서 누르면 카메라/앨범 선택지 자동 제공)
+    with st.popover(f"➕ 사진 올리기", use_container_width=True):
       st.markdown(
-          f"<p style='font-weight: 800; font-size: 14px; color: #1e293b;"
-          f" margin-bottom: 10px;'>📸 {group_name} 사진 첨부</p>",
+          f"<p style='font-weight: 800; font-size: 13px; color: #1e293b;"
+          f" margin-bottom: 8px;'>📸 {group_name} 사진 첨부</p>",
           unsafe_allow_html=True,
       )
 
-      # [📷 카메라] / [📁 앨범] 버튼 선택
-      c1, c2 = st.columns(2)
-      with c1:
-        if st.button(
-            "📷 카메라", key=f"btn_cam_{group_name}", use_container_width=True
-        ):
-          st.session_state[f"mode_{group_name}"] = "cam"
-          st.rerun()
-      with c2:
-        if st.button(
-            "📁 앨범", key=f"btn_file_{group_name}", use_container_width=True
-        ):
-          st.session_state[f"mode_{group_name}"] = "file"
-          st.rerun()
+      # 모바일 기기에서 터치 시 카메라 직접 촬영 또는 앨범 선택이 모두 가능한 통합 업로더
+      uploaded_file = st.file_uploader(
+          "사진 선택 또는 촬영",
+          type=["jpg", "jpeg", "png"],
+          key=f"uploader_{group_name}",
+          label_visibility="collapsed",
+      )
 
-      uploaded_file = None
-      if st.session_state[f"mode_{group_name}"] == "cam":
-        uploaded_file = st.camera_input(
-            "촬영하기", key=f"cam_{group_name}", label_visibility="collapsed"
-        )
-      else:
-        uploaded_file = st.file_uploader(
-            "사진 선택",
-            type=["jpg", "jpeg", "png"],
-            key=f"file_{group_name}",
-            label_visibility="collapsed",
-        )
-
-      # 중복 저장 방지 처리 및 1회만 정상 제출
       if uploaded_file is not None:
         file_id = f"{uploaded_file.name}_{uploaded_file.size}"
         if st.session_state[f"last_processed_{group_name}"] != file_id:
@@ -258,28 +238,31 @@ for idx, group_name in enumerate(groups):
 
     st.write("")
 
-    # 해당 모둠 게시물 카드 (최신순)
+    # 해당 모둠 게시물 카드 목록
     group_df = df[df["group"] == group_name].iloc[::-1].reset_index(drop=True)
 
     if group_df.empty:
-      st.caption("제출된 사진이 없습니다.")
+      st.markdown(
+          "<p style='text-align: center; color: #94a3b8; font-size: 0.85rem;"
+          " margin-top: 2rem;'>제출된 사진이 없습니다.</p>",
+          unsafe_allow_html=True,
+      )
     else:
       for i, row in group_df.iterrows():
         with st.container(border=True):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 깔끔하게 돋보기 이모지 하나만 표시
-            with st.popover("🔍", use_container_width=True):
-              st.image(file_path, use_container_width=True)
+            if st.button("🔍", key=f"zoom_{row['filename']}"):
+              st.session_state.fullscreen_img = file_path
+              st.rerun()
 
             st.image(file_path, use_container_width=True)
           else:
-            st.error("이미지를 찾을 수 없습니다.")
+            st.error("파일 없음")
 
           st.caption(f"시간: {row['timestamp']}")
 
-          # 교사 모드일 때 개별 삭제 버튼 표시
           if st.session_state.is_teacher:
             if st.button("🗑️ 삭제", key=f"del_{row['filename']}"):
               if os.path.exists(file_path):
@@ -288,5 +271,7 @@ for idx, group_name in enumerate(groups):
                   st.session_state.data["filename"] != row["filename"]
               ]
               st.session_state.data.to_csv(CSV_FILE, index=False)
-              st.success("삭제되었습니다.")
+              st.success("삭제됨")
               st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
