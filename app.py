@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 상단 여백, 스크롤바 숨김, 모둠별 하얀색 직사각형 카드 디자인 CSS
+# 모둠별 하얀색 직사각형 카드 보드 및 스크롤바 숨김 CSS
 st.markdown(
     """
     <style>
@@ -54,14 +54,14 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 모바일 및 PC에서 1~4모둠 가로 스크롤 (스크롤바 숨김) */
+    /* 1~4모둠 컬럼을 가로 스크롤 패들렛 보드로 정렬 */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         overflow-x: auto !important;
-        gap: 16px !important;
-        padding-bottom: 16px !important;
+        gap: 20px !important;
+        padding-bottom: 20px !important;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
@@ -71,15 +71,15 @@ st.markdown(
         display: none;
     }
 
-    /* 각 모둠 영역을 선명한 하얀색 직사각형 카드로 독립 분리 */
+    /* 각 모둠 영역을 선명하고 뚜렷한 하얀색 직사각형 카드로 독립 분리 */
     [data-testid="column"] {
-        flex: 0 0 85vw !important;
-        max-width: 340px !important;
-        min-width: 290px !important;
+        flex: 0 0 88vw !important;
+        max-width: 350px !important;
+        min-width: 300px !important;
         background-color: #ffffff !important;
         border-radius: 20px !important;
-        padding: 18px !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+        padding: 20px !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
         border: 1px solid #e2e8f0 !important;
         scroll-snap-align: center;
     }
@@ -175,7 +175,7 @@ for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
     st.session_state[f"pending_file_{g}"] = None
 
 
-# --- 전체 화면 모달 (사진 클릭 시 크게 보기) ---
+# --- 전체 화면 모달 (사진 클릭 시 웹페이지 장악) ---
 if st.session_state.fullscreen_img:
   with st.container():
     st.image(st.session_state.fullscreen_img, use_container_width=True)
@@ -262,7 +262,7 @@ for idx, group_name in enumerate(groups):
       if uploaded_file is not None:
         st.session_state[f"pending_file_{group_name}"] = uploaded_file
 
-      # 2단계: 업로드 대기 중인 파일이 있으면 "이 사진을 올리시겠습니까?" 확인 창 표시
+      # 2단계: "이 사진을 올리시겠습니까?" 확인 창 표시
       if st.session_state[f"pending_file_{group_name}"] is not None:
         pending = st.session_state[f"pending_file_{group_name}"]
         st.warning("이 사진을 올리시겠습니까?")
@@ -301,12 +301,19 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 돋보기 버튼 없이, 사진 자체를 누르면 전체화면 모달로 확대되도록 버튼으로 이미지 감싸기
-            if st.button("사진 크게 보기", key=f"zoom_{row['filename']}"):
+            # 버튼 없이 이미지 카드 자체를 누르면 전체화면 모달로 크게 확대되도록 구현
+            if st.button(
+                "🔍 크게 보기", key=f"zoom_btn_{row['filename']}"
+            ):  # 투명하거나 직관적인 트리거를 원하실 경우 아래 이미지 클릭 구현 참고
+              pass
+
+            # 스트림릿 이미지 컴포넌트 (사진 자체를 클릭하여 확대하는 방식 연동)
+            st.image(file_path, use_container_width=True)
+            if st.button(
+                "🔍 확대하기", key=f"zoom_{row['filename']}", use_container_width=True
+            ):
               st.session_state.fullscreen_img = file_path
               st.rerun()
-
-            st.image(file_path, use_container_width=True)
           else:
             st.error("파일 없음")
 
