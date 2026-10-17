@@ -1,7 +1,12 @@
 import os
 import time
+from datetime import datetime
 import pandas as pd
+import pytz
 import streamlit as st
+
+# 한국 시간대(KST) 정의
+KST = pytz.timezone("Asia/Seoul")
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -98,11 +103,14 @@ def save_post(group_name, file_buffer):
   time.sleep(0.2)
   progress_bar.empty()
 
+  # 한국 시간(KST)으로 기록
+  kst_now = datetime.now(KST).strftime("%H:%M:%S")
+
   new_row = pd.DataFrame(
       [{
           "group": group_name,
           "filename": safe_filename,
-          "timestamp": pd.Timestamp.now().strftime("%H:%M:%S"),
+          "timestamp": kst_now,
       }]
   )
 
@@ -261,9 +269,8 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 사진 자체를 팝오버로 감싸서 클릭하면 팝오버 형태 카드로 크게 노출
-            with st.popover("🔍 사진 크게 보기 (클릭)", use_container_width=True):
-              st.markdown(f"**📌 [{row['group']}] 제출 사진**")
+            # 깔끔하게 돋보기 이모지 하나만 표시
+            with st.popover("🔍", use_container_width=True):
               st.image(file_path, use_container_width=True)
 
             st.image(file_path, use_container_width=True)
