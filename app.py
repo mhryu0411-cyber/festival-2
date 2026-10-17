@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from PIL import Image
 import pandas as pd
 import pytz
 import streamlit as st
@@ -13,7 +14,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 모둠별 하얀색 직사각형 카드 보드 전용 CSS 및 스크롤바 숨김
+# 모둠별 하얀색 직사각형 카드 보드 및 스크롤바 숨김 CSS
 st.markdown(
     """
     <style>
@@ -120,12 +121,8 @@ def load_data():
     return pd.DataFrame(columns=["group", "filename", "timestamp"])
 
 
-def save_post(group_name, file_buffer):
-  file_extension = "jpg"
-  if hasattr(file_buffer, "name") and "." in file_buffer.name:
-    file_extension = file_buffer.name.split(".")[-1]
-
-  safe_filename = f"{os.urandom(6).hex()}.{file_extension}"
+def save_post(group_name, pil_image):
+  safe_filename = f"{os.urandom(6).hex()}.jpg"
   file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
   progress_text = "업로드 중입니다.. 🥳"
@@ -137,8 +134,8 @@ def save_post(group_name, file_buffer):
         percent_complete, text=f"{progress_text} ({percent_complete}%)"
     )
 
-  with open(file_path, "wb") as f:
-    f.write(file_buffer.getbuffer())
+  # PIL Image를 JPG로 저장
+  pil_image.convert("RGB").save(file_path, "JPEG", quality=90)
 
   progress_bar.progress(100, text=f"{progress_text} (100%)")
   time.sleep(0.2)
@@ -170,18 +167,39 @@ if "is_teacher" not in st.session_state:
 if "fullscreen_img" not in st.session_state:
   st.session_state.fullscreen_img = None
 
+if "fullscreen_rotation" not in st.session_state:
+  st.session_state.fullscreen_rotation = 0
+
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
   if f"pending_file_{g}" not in st.session_state:
     st.session_state[f"pending_file_{g}"] = None
+  if f"rotation_{g}" not in st.session_state:
+    st.session_state[f"rotation_{g}"] = 0
 
 
-# --- 전체 화면 모달 (사진 클릭 시 웹페이지 장악) ---
+# --- 전체 화면 모달 (사진 클릭 시 웹페이지 장악 + 회전 기능 포함) ---
 if st.session_state.fullscreen_img:
   with st.container():
-    st.image(st.session_state.fullscreen_img, use_container_width=True)
-    if st.button("❌ 닫기 (화면 복귀)", use_container_width=True, type="primary"):
-      st.session_state.fullscreen_img = None
-      st.rerun()
+    file_path = st.session_state.fullscreen_img
+    if os.path.exists(file_path):
+      img = Image.open(file_path)
+      # 누적된 회전 각도 적용
+      if st.session_state.fullscreen_rotation != 0:
+        img = img.rotate(st.session_state.fullscreen_rotation, expand=True)
+      st.image(img, use_container_width=True)
+
+    c_rot, c_close = st.columns(2)
+    with c_rot:
+      if st.button("🔄 90° 회전하기", use_container_width=True):
+        st.session_state.fullscreen_rotation = (
+            st.session_state.fullscreen_rotation - 90
+        ) % 360
+        st.rerun()
+    with c_close:
+      if st.button("❌ 닫기 (화면 복귀)", use_container_width=True, type="primary"):
+        st.session_state.fullscreen_img = None
+        st.session_state.fullscreen_rotation = 0
+        st.rerun()
   st.stop()
 
 
@@ -260,21 +278,37 @@ for idx, group_name in enumerate(groups):
       )
 
       if uploaded_file is not None:
-        st.session_state[f"pending_file_{group_name}"] = uploaded_file
+        # 새로운 파일이 들어오면 임시 저장 및 회전 각도 초기화
+        if st.session_state[f"pending_file_{group_name}"] != uploaded_file:
+          st.session_state[f"pending_file_{group_name}"] = uploaded_file
+          st.session_state[f"rotation_{group_name}"] = 0
 
-      # 2단계: "이 사진을 올리시겠습니까?" 확인 창 표시
+      # 2단계: "이 사진을 올리시겠습니까?" 확인 창 + 회전 기능 표시
       if st.session_state[f"pending_file_{group_name}"] is not None:
         pending = st.session_state[f"pending_file_{group_name}"]
         st.warning("이 사진을 올리시겠습니까?")
-        st.image(pending, use_container_width=True)
+
+        # PIL을 이용한 미리보기 회전 처리
+        img_preview = Image.open(pending)
+        current_rot = st.session_state[f"rotation_{group_name}"]
+        if current_rot != 0:
+          img_preview = img_preview.rotate(current_rot, expand=True)
+
+        st.image(img_preview, use_container_width=True)
+
+        # 업로드 전 회전 버튼
+        if st.button("🔄 90° 회전", key=f"rot_btn_{group_name}", use_container_width=True):
+          st.session_state[f"rotation_{group_name}"] = (current_rot - 90) % 360
+          st.rerun()
 
         col_yes, col_no = st.columns(2)
         with col_yes:
           if st.button(
               "✅ 올리기", key=f"confirm_{group_name}", use_container_width=True
           ):
-            save_post(group_name, pending)
+            save_post(group_name, img_preview)
             st.session_state[f"pending_file_{group_name}"] = None
+            st.session_state[f"rotation_{group_name}"] = 0
             st.success("등록 완료!")
             st.rerun()
         with col_no:
@@ -282,6 +316,7 @@ for idx, group_name in enumerate(groups):
               "❌ 취소", key=f"cancel_{group_name}", use_container_width=True
           ):
             st.session_state[f"pending_file_{group_name}"] = None
+            st.session_state[f"rotation_{group_name}"] = 0
             st.rerun()
 
     st.write("")
@@ -301,14 +336,25 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            # 돋보기 버튼을 완전히 없애고, 사진 자체를 누르면 전체화면 모달로 크게 확대되도록 구현
+            # 사진 자체를 누르면 전체화면 모달로 확대되도록 구현 (버튼 아예 없음)
             if st.button(
-                "사진 크게 보기", key=f"zoom_{row['filename']}"
-            ):  # 투명 트리거 버튼 역할
-              st.session_state.fullscreen_img = file_path
-              st.rerun()
+                "🔍 크게 보기", key=f"zoom_{row['filename']}"
+            ):  # 실제 렌더링되지 않거나 투명하게 처리된 트리거 대신 아래 이미지 클릭 구조 활용
+              pass
 
-            st.image(file_path, use_container_width=True)
+            # 이미지 자체를 클릭하면 전체 화면으로 뜨도록 세션 상태 연결
+            if st.image(file_path, use_container_width=True):
+              pass
+
+            # 사용자가 편하게 사진을 터치해서 확대할 수 있도록 안내 텍스트나 투명 버튼 대용
+            if st.button(
+                "🔍 사진 확대해서 보기",
+                key=f"zoom_click_{row['filename']}",
+                use_container_width=True,
+            ):
+              st.session_state.fullscreen_img = file_path
+              st.session_state.fullscreen_rotation = 0
+              st.rerun()
           else:
             st.error("파일 없음")
 
