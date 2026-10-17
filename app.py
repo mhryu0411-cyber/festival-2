@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="세계 축제 이미지 분석", page_icon="🌍", layout="wide"
 )
 
-# 상단바 여백 넉넉하게 늘림 및 모바일 직관적 가로 스크롤 패들렛 스타일 CSS
+# 상단 여백, 스크롤바 숨김, 모둠별 하얀색 직사각형 카드 디자인 CSS
 st.markdown(
     """
     <style>
@@ -23,7 +23,7 @@ st.markdown(
         font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* 상단바 여백을 넉넉하게 늘림 */
+    /* 상단바 여백 넉넉하게 확보 */
     .block-container {
         padding-top: 2.8rem !important;
         padding-bottom: 2.5rem !important;
@@ -54,7 +54,7 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 모바일 및 PC에서 1~4모둠을 나란히 두고 가로 스크롤 */
+    /* 모바일 및 PC에서 1~4모둠 가로 스크롤 (스크롤바는 보이지 않게 깔끔하게 숨김) */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -64,31 +64,24 @@ st.markdown(
         padding-bottom: 16px !important;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox 스크롤바 숨김 */
     }
 
+    [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera 스크롤바 숨김 */
+    }
+
+    /* 각 모둠 영역을 선명한 하얀색 직사각형 카드로 독립 분리 */
     [data-testid="column"] {
         flex: 0 0 85vw !important;
         max-width: 340px !important;
         min-width: 290px !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        border-radius: 18px !important;
-        padding: 16px !important;
-        box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
-        border: 1px solid rgba(226,232,240,0.9) !important;
+        background-color: #ffffff !important;
+        border-radius: 20px !important;
+        padding: 18px !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid #e2e8f0 !important;
         scroll-snap-align: center;
-    }
-
-    /* 가로 스크롤바 예쁘게 디자인 */
-    [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
-        height: 8px;
-    }
-    [data-testid="stHorizontalBlock"]::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.04);
-        border-radius: 4px;
-    }
-    [data-testid="stHorizontalBlock"]::-webkit-scrollbar-thumb {
-        background: rgba(100,116,139,0.4);
-        border-radius: 4px;
     }
 
     /* 모바일 가로 스크롤 유도 안내 뱃지 스타일 */
@@ -192,7 +185,7 @@ if st.session_state.fullscreen_img:
   st.stop()
 
 
-# --- 상단 타이틀 (여백 넉넉하게, 서브멘트 삭제) ---
+# --- 상단 타이틀 ---
 col_head, col_auth = st.columns([12, 1])
 
 with col_head:
