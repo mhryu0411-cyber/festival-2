@@ -33,13 +33,12 @@ st.markdown(
         display: none !important;
     }
 
-    /* ⚙️ 아이콘 버튼 디자인 */
+    /* ⚙️ 아이콘 및 사진 팝오버 투명 스타일링 */
     [data-testid="stPopover"] button {
         border: none !important;
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
-        font-size: 1.2rem !important;
     }
 
     /* 깔끔한 백색 패들렛 카드 */
@@ -131,9 +130,6 @@ if "data" not in st.session_state:
 if "is_teacher" not in st.session_state:
   st.session_state.is_teacher = False
 
-if "zoomed_image" not in st.session_state:
-  st.session_state.zoomed_image = None
-
 # 모둠별 카메라/앨범 및 마지막 처리 파일 중복 방지 키
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
   if f"mode_{g}" not in st.session_state:
@@ -191,23 +187,6 @@ if st.session_state.is_teacher:
       st.rerun()
 
 st.divider()
-
-# --- 사진 크게 보기 (모든 사용자 이용 가능) ---
-if st.session_state.zoomed_image:
-  with st.container(border=True):
-    col_img, col_close = st.columns([5, 1])
-    with col_img:
-      st.markdown("### 🔍 사진 상세 보기")
-      st.image(
-          st.session_state.zoomed_image,
-          caption=st.session_state.get("zoomed_info", ""),
-          use_container_width=True,
-      )
-    with col_close:
-      if st.button("❌ 닫기", use_container_width=True):
-        st.session_state.zoomed_image = None
-        st.rerun()
-  st.divider()
 
 # --- 패들렛 스타일 1~4모둠 보드 ---
 st.session_state.data = load_data()
@@ -282,13 +261,12 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            st.image(file_path, use_container_width=True)
+            # 사진 자체를 팝오버로 감싸서 클릭하면 팝오버 형태 카드로 크게 노출
+            with st.popover("🔍 사진 크게 보기 (클릭)", use_container_width=True):
+              st.markdown(f"**📌 [{row['group']}] 제출 사진**")
+              st.image(file_path, use_container_width=True)
 
-            # 누구나 사용 가능한 크게 보기 버튼
-            if st.button("🔍 크게 보기", key=f"zoom_{row['filename']}"):
-              st.session_state.zoomed_image = file_path
-              st.session_state.zoomed_info = f"[{row['group']}] 제출된 사진"
-              st.rerun()
+            st.image(file_path, use_container_width=True)
           else:
             st.error("이미지를 찾을 수 없습니다.")
 
