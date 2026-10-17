@@ -118,12 +118,16 @@ def load_data():
     df = pd.read_csv(CSV_FILE)
     if "group" not in df.columns:
       df["group"] = "1모둠"
+    if "uploader_token" not in df.columns:
+      df["uploader_token"] = "legacy"
     return df
   else:
-    return pd.DataFrame(columns=["group", "filename", "timestamp"])
+    return pd.DataFrame(
+        columns=["group", "filename", "timestamp", "uploader_token"]
+    )
 
 
-def save_post(group_name, file_buffer):
+def save_post(group_name, file_buffer, token):
   file_extension = "jpg"
   if hasattr(file_buffer, "name") and "." in file_buffer.name:
     file_extension = file_buffer.name.split(".")[-1]
@@ -154,6 +158,7 @@ def save_post(group_name, file_buffer):
           "group": group_name,
           "filename": safe_filename,
           "timestamp": kst_now,
+          "uploader_token": token,
       }]
   )
 
@@ -169,6 +174,10 @@ if "data" not in st.session_state:
 
 if "is_teacher" not in st.session_state:
   st.session_state.is_teacher = False
+
+# 현재 브라우저(기기)만의 고유 작성자 토큰 생성 (없으면 자동 부여)
+if "user_token" not in st.session_state:
+  st.session_state.user_token = os.urandom(8).hex()
 
 if "fullscreen_img" not in st.session_state:
   st.session_state.fullscreen_img = None
@@ -239,7 +248,7 @@ with col_auth:
         st.rerun()
 
 if st.session_state.is_teacher:
-  st.info("🔓 [교사 모드 활성화됨] 개별 사진 삭제가 가능합니다.")
+  st.info("🔓 [교사 모드 활성화됨] 모든 사진 삭제가 가능합니다.")
 
 # 직관적인 가로 스크롤 안내 뱃지 (가운데 정렬)
 st.markdown(
@@ -281,12 +290,12 @@ for idx, group_name in enumerate(groups):
           label_visibility="collapsed",
       )
 
-      # 사진 선택 즉시 업로드 처리 (중복 방지 적용)
+      # 사진 선택 즉시 업로드 처리 (작성자 토큰 함께 저장)
       if uploaded_file is not None:
         file_id = f"{uploaded_file.name}_{uploaded_file.size}"
         if st.session_state[f"last_processed_{group_name}"] != file_id:
           st.session_state[f"last_processed_{group_name}"] = file_id
-          save_post(group_name, uploaded_file)
+          save_post(group_name, uploaded_file, st.session_state.user_token)
           st.success("등록 완료!")
           st.rerun()
 
@@ -321,13 +330,19 @@ for idx, group_name in enumerate(groups):
 
           st.caption(f"시간: {row['timestamp']}")
 
-          if st.session_state.is_teacher:
-            if st.button("🗑️ 삭제", key=f"del_{row['filename']}"):
+          # 당사자(본인)이 올린 사진이거나 교사 모드일 때만 삭제 버튼 노출
+          is_owner = (
+              "uploader_token" in row
+              and row["uploader_token"] == st.session_state.user_token
+          )
+          if is_owner or st.session_state.is_teacher:
+            del_label = "🗑️ 내 사진 삭제" if is_owner else "🗑️ 삭제 (교사)"
+            if st.button(del_label, key=f"del_{row['filename']}"):
               if os.path.exists(file_path):
                 os.remove(file_path)
               st.session_state.data = st.session_state.data[
                   st.session_state.data["filename"] != row["filename"]
               ]
               st.session_state.data.to_csv(CSV_FILE, index=False)
-              st.success("삭제됨")
+              st.success("삭제되었습니다.")
               st.rerun()
