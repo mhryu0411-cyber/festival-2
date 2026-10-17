@@ -54,7 +54,7 @@ st.markdown(
         padding: 0 !important;
     }
 
-    /* 모바일 및 PC에서 1~4모둠 가로 스크롤 (스크롤바는 보이지 않게 깔끔하게 숨김) */
+    /* 모바일 및 PC에서 1~4모둠 가로 스크롤 (스크롤바 숨김) */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -64,11 +64,11 @@ st.markdown(
         padding-bottom: 16px !important;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox 스크롤바 숨김 */
+        scrollbar-width: none;
     }
 
     [data-testid="stHorizontalBlock"]::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera 스크롤바 숨김 */
+        display: none;
     }
 
     /* 각 모둠 영역을 선명한 하얀색 직사각형 카드로 독립 분리 */
@@ -171,11 +171,11 @@ if "fullscreen_img" not in st.session_state:
   st.session_state.fullscreen_img = None
 
 for g in ["1모둠", "2모둠", "3모둠", "4모둠"]:
-  if f"last_processed_{g}" not in st.session_state:
-    st.session_state[f"last_processed_{g}"] = None
+  if f"pending_file_{g}" not in st.session_state:
+    st.session_state[f"pending_file_{g}"] = None
 
 
-# --- 돋보기를 눌렀을 때 전체 화면 모달 ---
+# --- 전체 화면 모달 (사진 클릭 시 크게 보기) ---
 if st.session_state.fullscreen_img:
   with st.container():
     st.image(st.session_state.fullscreen_img, use_container_width=True)
@@ -251,6 +251,7 @@ for idx, group_name in enumerate(groups):
           unsafe_allow_html=True,
       )
 
+      # 1단계: 사진 파일 선택
       uploaded_file = st.file_uploader(
           "사진 선택 또는 촬영",
           type=["jpg", "jpeg", "png"],
@@ -259,12 +260,29 @@ for idx, group_name in enumerate(groups):
       )
 
       if uploaded_file is not None:
-        file_id = f"{uploaded_file.name}_{uploaded_file.size}"
-        if st.session_state[f"last_processed_{group_name}"] != file_id:
-          st.session_state[f"last_processed_{group_name}"] = file_id
-          save_post(group_name, uploaded_file)
-          st.success("등록 완료!")
-          st.rerun()
+        st.session_state[f"pending_file_{group_name}"] = uploaded_file
+
+      # 2단계: 업로드 대기 중인 파일이 있으면 "이 사진을 올리시겠습니까?" 확인 창 표시
+      if st.session_state[f"pending_file_{group_name}"] is not None:
+        pending = st.session_state[f"pending_file_{group_name}"]
+        st.warning("이 사진을 올리시겠습니까?")
+        st.image(pending, use_container_width=True)
+
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+          if st.button(
+              "✅ 올리기", key=f"confirm_{group_name}", use_container_width=True
+          ):
+            save_post(group_name, pending)
+            st.session_state[f"pending_file_{group_name}"] = None
+            st.success("등록 완료!")
+            st.rerun()
+        with col_no:
+          if st.button(
+              "❌ 취소", key=f"cancel_{group_name}", use_container_width=True
+          ):
+            st.session_state[f"pending_file_{group_name}"] = None
+            st.rerun()
 
     st.write("")
 
@@ -283,7 +301,8 @@ for idx, group_name in enumerate(groups):
           file_path = os.path.join(UPLOAD_DIR, row["filename"])
 
           if os.path.exists(file_path):
-            if st.button("🔍", key=f"zoom_{row['filename']}"):
+            # 돋보기 버튼 없이, 사진 자체를 누르면 전체화면 모달로 확대되도록 버튼으로 이미지 감싸기
+            if st.button("사진 크게 보기", key=f"zoom_{row['filename']}"):
               st.session_state.fullscreen_img = file_path
               st.rerun()
 
